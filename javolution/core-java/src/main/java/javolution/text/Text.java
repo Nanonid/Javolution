@@ -9,6 +9,8 @@
 package javolution.text;
 
 import java.io.PrintStream;
+import java.util.Comparator;
+
 import javolution.annotation.StackSafe;
 import javolution.context.HeapContext;
 import javolution.lang.MathLib;
@@ -82,7 +84,7 @@ public final class Text implements CharSequence, Comparable<CharSequence>, XMLSe
      */
     private static final FastMap INTERN_INSTANCES = new FastMap() {
 
-        public Comparators valueComparator() {
+        public Comparator<?> valueComparator() {
             return Comparators.LEXICAL;
         }
 

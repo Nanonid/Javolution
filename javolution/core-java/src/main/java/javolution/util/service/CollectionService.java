@@ -52,6 +52,24 @@ public interface CollectionService<E> {
     void atomic(Runnable action);
 
     /** 
+     * Executes the specified action on this collection in an atomic manner as 
+     * far as readers of this collection's are concerned (either readers 
+     * see the full result of this action on this collection or nothing).
+     *  
+     * @param action the action to be executed atomically.
+     */
+    void atomicRead(Runnable action);
+
+    /** 
+     * Executes the specified action on this collection in an atomic manner as 
+     * far as readers of this collection's are concerned (either readers 
+     * see the full result of this action on this collection or nothing).
+     *  
+     * @param action the action to be executed atomically.
+     */
+    void atomicWrite(Runnable action);
+
+    /** 
      * Returns the full comparator used for element equality or order.
      */
     FullComparator<? super E> comparator();

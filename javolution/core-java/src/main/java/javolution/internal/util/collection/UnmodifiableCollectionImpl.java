@@ -116,4 +116,9 @@ public class UnmodifiableCollectionImpl<E> implements CollectionService<E> {
         return unmodifiables;
     }
 
+	@Override
+	public void atomic(Runnable action) {
+		target.atomic(action);
+	}
+
 }

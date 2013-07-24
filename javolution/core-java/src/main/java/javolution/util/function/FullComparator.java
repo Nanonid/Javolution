@@ -10,6 +10,8 @@ package javolution.util.function;
 
 import java.util.Comparator;
 
+import javolution.util.service.ComparatorService;
+
 /**
  * <p> A comparator to be used for equality as well as for ordering.
  *     Implementing class should ensures that:
@@ -33,7 +35,7 @@ import java.util.Comparator;
  * @version 6.0.0, December 12, 2012
  * @see Comparators
  */
-public interface FullComparator<T> extends Comparator<T> {
+public interface FullComparator<T> extends ComparatorService<T> {
 
     /**
      * Returns the hash code for the specified object (consistent with 
