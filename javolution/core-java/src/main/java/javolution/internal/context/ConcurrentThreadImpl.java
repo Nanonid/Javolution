@@ -10,15 +10,17 @@ package javolution.internal.context;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javolution.context.AbstractContext;
+
 /**
  * A worker thread executing in a concurrent context.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public class ConcurrentThreadImpl extends Thread { // TODO: Extends RealtimeThread
 
-   private AtomicBoolean isFree = new AtomicBoolean();
+    private AtomicBoolean isFree = new AtomicBoolean();
 
     private int priority;
 
@@ -41,7 +43,8 @@ public class ConcurrentThreadImpl extends Thread { // TODO: Extends RealtimeThre
      * <code>false</code> if this thread is busy.
      */
     public boolean execute(Runnable logic, ConcurrentContextImpl inContext) {
-        if (!isFree.compareAndSet(true, false)) return false;
+        if (!isFree.compareAndSet(true, false))
+            return false;
         synchronized (this) {
             this.priority = Thread.currentThread().getPriority();
             this.inContext = inContext;
@@ -59,7 +62,7 @@ public class ConcurrentThreadImpl extends Thread { // TODO: Extends RealtimeThre
                     this.wait();
                 }
                 this.setPriority(priority);
-                inContext.setCurrent();
+                AbstractContext.inherit(inContext);
                 logic.run();
                 inContext.completed(null);
             } catch (Throwable error) {
@@ -67,6 +70,7 @@ public class ConcurrentThreadImpl extends Thread { // TODO: Extends RealtimeThre
             }
             logic = null;
             inContext = null;
+            AbstractContext.inherit(null);
             isFree.set(true);
         }
     }

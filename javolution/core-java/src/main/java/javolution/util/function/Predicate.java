@@ -20,13 +20,13 @@ package javolution.util.function;
  * Wikipedia: Predicate<a>    
  *                  
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
-public interface Predicate<T>  {
-     
+public interface Predicate<T> {
+
     /**
      * Tests the specified value.
      */
     boolean test(T param);
-  
+
 }

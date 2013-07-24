@@ -8,170 +8,172 @@
  */
 package javolution.internal.util.table;
 
+import java.io.Serializable;
 import java.util.Iterator;
 
-import javolution.util.function.FullComparator;
+import javolution.util.function.Consumer;
+import javolution.util.function.EqualityComparator;
 import javolution.util.function.Predicate;
+import javolution.util.service.CollectionService;
 import javolution.util.service.TableService;
 
 /**
  * A reverse view over a table.
  */
-public final class ReversedTableImpl<E> extends AbstractTableImpl<E> {
+public class ReversedTableImpl<E> implements TableService<E>,
+        Serializable {
 
-    private final TableService<E> that;
+    private static final long serialVersionUID = 0x600L; // Version.
+    private final TableService<E> target;
 
     public ReversedTableImpl(TableService<E> that) {
-        this.that = that;
-    }
-    
-    // 
-    // Impacted methods.
-    //
-    
-    @Override
-    public E get(int index) {
-        return that.get(size() - 1 - index);
-    }
-
-    @Override
-    public E set(int index, E element) {
-        return that.set(size() - 1 - index, element);
-    }
-
-    @Override
-    public void add(int index, E element) {
-        that.add(size() - 1 - index, element);
-    }
-
-    @Override
-    public E remove(int index) {
-        return that.remove(size() - 1 - index);
-    }
-
-    @Override
-    public int indexOf(E element) {
-        return size() - 1 - that.lastIndexOf(element);
-    }
-
-    @Override
-    public int lastIndexOf(E element) {
-        return  size() - 1 - that.indexOf(element);
-    }
-
-    @Override
-    public Iterator<E> iterator() {
-        return iteratorDefault();
+        this.target = that;
     }
 
     @Override
     public boolean add(E element) {
-        return addDefault(element);
+        return target.add(element);
     }
 
     @Override
-    public void sort() {
-        sortDefault();
-    }
-
-    @Override
-    public boolean doWhile(Predicate<? super E> predicate) {
-        return doWhileDefault(predicate);
-    }
-    
-    @Override
-    public boolean removeIf(Predicate<? super E> predicate) {
-        return removeAllDefault(predicate);
-    }
-
-    @Override
-    public E getFirst() {
-        return getFirstDefault();
-    }
-
-    @Override
-    public E getLast() {
-        return getLastDefault();
+    public void add(int index, E element) {
+        target.add(size() - index - 1, element);
     }
 
     @Override
     public void addFirst(E element) {
-        addFirstDefault(element);
-    }
+        add(0, element);    }
 
     @Override
     public void addLast(E element) {
-        addLastDefault(element);
-    }
-
-    @Override
-    public E removeFirst() {
-        return removeFirstDefault();
-    }
-
-    @Override
-    public E removeLast() {
-        return removeLastDefault();
-    }
-
-    @Override
-    public E pollFirst() {
-        return pollFirstDefault();
-    }
-
-    @Override
-    public E pollLast() {
-        return pollLastDefault();
-    }
-
-    @Override
-    public E peekFirst() {
-        return peekFirstDefault();
-    }
-
-    @Override
-    public E peekLast() {
-        return peekLastDefault();
-    }    
-
-    @Override
-    public TableService<E>[] trySplit(int n) {
-        return trySplitDefault(n);
-    }
-    
-    //
-    // If no impact, forwards to inner table.
-    // 
-    
-    @Override
-    public FullComparator<? super E> comparator() {
-        return that.comparator();
+        add(size(), element);
     }
     
     @Override
-    public void setComparator(FullComparator<? super E> cmp) {
-        that.setComparator(cmp);
-    }
-    
-    @Override
-    public int size() {
-        return that.size();
+    public void atomic(Runnable update) {
+        target.atomic(update);
     }
 
     @Override
     public void clear() {
-        that.clear();
-    }
-    
-    @Override
-    public boolean contains(E element) {
-        return that.contains(element);
+        target.clear();
     }
 
     @Override
-    public boolean remove(E element) {
-        return that.remove(element);
+    public EqualityComparator<? super E> comparator() {
+        return target.comparator();
     }
 
-    private static final long serialVersionUID = -3742752971523397049L;
+    @Override
+    public void forEach(Consumer<? super E> consumer,
+            final IterationController controller) {
+        target.forEach(consumer, new IterationController() {
+
+            @Override
+            public boolean doReversed() {
+                return !controller.doReversed();
+            }
+
+            @Override
+            public boolean doSequential() {
+                return controller.doSequential();
+            }
+
+            @Override
+            public boolean isTerminated() {
+                return controller.isTerminated();
+            }});
+        
+    }
+
+    @Override
+    public E get(int index) {
+        return target.get(size() - index - 1);
+    }
+
+    @Override
+    public E getFirst() {
+        return get(0);
+    }
+
+    @Override
+    public E getLast() {
+        return get(size() - 1);
+    }
+
+    @Override
+    public Iterator<E> iterator() {
+        return new TableIteratorImpl<E>(this, 0);
+    }
+
+    @Override
+    public E peekFirst() {
+        return (size() == 0) ? null : getFirst();
+    }
+
+    @Override
+    public E peekLast() {
+        return (size() == 0) ? null : getLast();
+    }
+
+    @Override
+    public E pollFirst() {
+        return (size() == 0) ? null : removeFirst();
+    }
+
+    @Override
+    public E pollLast() {
+        return (size() == 0) ? null : removeLast();
+    }
+
+    @Override
+    public E remove(int index) {
+        return target.remove(size() - index - 1) ;
+    }
+
+    @Override
+    public E removeFirst() {
+        return remove(0);
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter,
+            final IterationController controller) {
+        return target.removeIf(filter, new IterationController() {
+
+            @Override
+            public boolean doReversed() {
+                return !controller.doReversed();
+            }
+
+            @Override
+            public boolean doSequential() {
+                return controller.doSequential();
+            }
+
+            @Override
+            public boolean isTerminated() {
+                return controller.isTerminated();
+            }});
+    }
+
+    @Override
+    public E removeLast() {
+        return remove(size() - 1);
+    }
+
+    @Override
+    public E set(int index, E element) {
+        return target.set(size() - index - 1, element);
+    }
+
+    @Override
+    public int size() {
+        return target.size();
+    }
+
+    @Override
+    public CollectionService<E>[] trySplit(int n) {
+        return target.trySplit(n); // Forwards (view affects iteration controller only).
+    }
 }

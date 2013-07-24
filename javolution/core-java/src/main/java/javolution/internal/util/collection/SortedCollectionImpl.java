@@ -10,19 +10,21 @@ package javolution.internal.util.collection;
 
 import java.util.Iterator;
 
+import javolution.internal.util.UnmodifiableIteratorImpl;
+import javolution.internal.util.table.sorted.FastSortedTableImpl;
 import javolution.util.FastCollection;
-import javolution.util.FastTable;
+import javolution.util.function.Consumer;
 import javolution.util.function.FullComparator;
 import javolution.util.function.Predicate;
 import javolution.util.service.CollectionService;
 
 /**
- * A sorted view over a collection.
+ * An unmodifiable sorted view over a collection.
  */
 public final class SortedCollectionImpl<E> extends FastCollection<E> implements
         CollectionService<E> {
 
-    private static final long serialVersionUID = 2125302736706554633L;
+    private static final long serialVersionUID = 0x600L; // Version.
     private final CollectionService<E> target;
 
     public SortedCollectionImpl(CollectionService<E> that) {
@@ -31,56 +33,54 @@ public final class SortedCollectionImpl<E> extends FastCollection<E> implements
 
     @Override
     public boolean add(E element) {
-        return target.add(element);
+        throw new UnsupportedOperationException("Sorted views are unmodifiable");
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        target.atomic(update);
     }
     
-    @Override
-    public void atomicRead(Runnable action) {
-        target.atomicRead(action);
-    }
-
-    @Override
-    public void atomicWrite(Runnable action) {
-        target.atomicWrite(action);        
-    }
-   
-    @Override
-    public Iterator<E> iterator() {
-        return getSortedTable().unmodifiable().iterator();
-     }
-
     @Override
     public FullComparator<? super E> comparator() {
         return target.comparator();
     }
-    
-    @SuppressWarnings("unchecked")
+
     @Override
-    public CollectionService<E>[] trySplit(int n) {
-        CollectionService<E>[] tmp = target.trySplit(n);
-        if (tmp == null) return null;
-        SortedCollectionImpl<E>[] sorteds = new SortedCollectionImpl[tmp.length]; 
-        for (int i=0; i < tmp.length; i++) {
-           sorteds[i] = new SortedCollectionImpl<E>(tmp[i]); 
-        }
-        return sorteds;
+    public void forEach(Consumer<? super E> consumer,
+            IterationController controller) {
+        sortedCopy().forEach(consumer, controller);
     }
-    
-    private FastTable<E> getSortedTable() {
-        final FastTable<E> sorted = new FastTable<E>().usingComparator(target.comparator());
-        target.doWhile(new Predicate<E>() {
+    private FastSortedTableImpl<E> sortedCopy() {
+        final FastSortedTableImpl<E> sorted = new FastSortedTableImpl<E>(target.comparator());
+        target.forEach(new Consumer<E>() {
 
             @Override
-            public boolean test(E e) {
-                sorted.addLast(e);
-                return true;
-            }});
-        sorted.sort();
-        return sorted;
-   }
+            public void accept(E e) {
+                sorted.add(e);
+                
+            }}, IterationController.SEQUENTIAL);
+       return sorted; 
+    }
 
     @Override
-    public SortedCollectionImpl<E> service() {
+    public Iterator<E> iterator() {
+        return new UnmodifiableIteratorImpl<E>(sortedCopy().iterator());
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter,
+            IterationController controller) {
+        throw new UnsupportedOperationException("Sorted views are unmodifiable");
+    }
+
+    @Override
+    protected SortedCollectionImpl<E> service() {
         return this;
+    }
+
+    @Override
+    public SplitCollectionImpl<E>[] trySplit(int n) {
+        return SplitCollectionImpl.splitOf(this, n);
     }
 }

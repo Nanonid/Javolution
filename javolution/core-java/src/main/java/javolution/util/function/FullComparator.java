@@ -35,7 +35,7 @@ import javolution.util.service.ComparatorService;
  * @version 6.0.0, December 12, 2012
  * @see Comparators
  */
-public interface FullComparator<T> extends ComparatorService<T> {
+public interface FullComparator<T> extends EqualityComparator<T> {
 
     /**
      * Returns the hash code for the specified object (consistent with 

@@ -8,10 +8,14 @@
  */
 package javolution.internal.util.table;
 
+import java.io.Serializable;
 import java.util.Iterator;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javolution.internal.util.ReadWriteLockImpl;
+import javolution.internal.util.SharedIteratorImpl;
+import javolution.internal.util.collection.SharedCollectionImpl;
+import javolution.util.function.Consumer;
+import javolution.util.function.EqualityComparator;
 import javolution.util.function.FullComparator;
 import javolution.util.function.Predicate;
 import javolution.util.service.TableService;
@@ -19,327 +23,245 @@ import javolution.util.service.TableService;
 /**
  * A shared view over a table allowing concurrent access and sequential updates.
  */
-public final class SharedTableImpl<E> extends AbstractTableImpl<E> {
+public class SharedTableImpl<E> implements TableService<E>, Serializable {
 
-    private final TableService<E> that;
-    private final Lock read;
-    private final Lock write;
+    private static final long serialVersionUID = 0x600L; // Version.
+    private final ReadWriteLockImpl rwLock;
+    private final TableService<E> target;
 
-    public SharedTableImpl(TableService<E> that) {
-        this.that = that;
-        ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-        this.read  = readWriteLock.readLock();
-        this.write = readWriteLock.writeLock();        
+    public SharedTableImpl(TableService<E> target) {
+        this(target, new ReadWriteLockImpl());
     }
-    
-    @Override
-    public int size() {
-        read.lock();
-        try {
-            return that.size();
-        } finally {
-            read.unlock();
-        }
+
+    public SharedTableImpl(TableService<E> target, ReadWriteLockImpl rwLock) {
+        this.target = target;
+        this.rwLock = rwLock;
     }
 
     @Override
-    public E get(int index) {
-        read.lock();
+    public boolean add(E element) {
+        rwLock.writeLock().lock();
         try {
-            return that.get(index);
+            return target.add(element);
         } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public E set(int index, E element) {
-        write.lock();
-        try {
-            return that.set(index, element);
-        } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
     @Override
     public void add(int index, E element) {
-        write.lock();
+        rwLock.writeLock().lock();
         try {
-            that.add(index, element);
+            target.add(index, element);
         } finally {
-            write.unlock();
-        }
-    }
-
-    @Override
-    public E remove(int index) {
-        write.lock();
-        try {
-            return that.remove(index);
-        } finally {
-            write.unlock();
-        }
-    }
-
-    @Override
-    public void clear() {
-        write.lock();
-        try {
-            that.clear();
-        } finally {
-            write.unlock();
-        }
-    }
-
-    @Override
-    public E getFirst() {
-        read.lock();
-        try {
-            return that.getFirst();
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public E getLast() {
-        read.lock();
-        try {
-            return that.getLast();
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public boolean add(E element) {
-        write.lock();
-        try {
-            return that.add(element);
-        } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
     @Override
     public void addFirst(E element) {
-        write.lock();
+        rwLock.writeLock().lock();
         try {
-            that.addFirst(element);
+            target.addFirst(element);
         } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
     @Override
     public void addLast(E element) {
-        write.lock();
+        rwLock.writeLock().lock();
         try {
-            that.addLast(element);
+            target.addLast(element);
         } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
     @Override
-    public E removeFirst() {
-        write.lock();
+    public void atomic(Runnable update) {
+        rwLock.writeLock().lock();
         try {
-            return that.removeFirst();
+            target.atomic(update);
         } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
+        }   
+    }
+
+    @Override
+    public void clear() {
+        rwLock.writeLock().lock();
+        try {
+            target.clear();
+        } finally {
+            rwLock.writeLock().unlock();
         }
     }
 
     @Override
-    public E removeLast() {
-        write.lock();
+    public FullComparator<? super E> comparator() {
+        return target.comparator();
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> consumer,
+            IterationController controller) {
+        rwLock.readLock().lock();
         try {
-            return that.removeLast();
+            target.forEach(consumer, controller);
         } finally {
-            write.unlock();
+            rwLock.readLock().unlock();
         }
     }
 
     @Override
-    public E pollFirst() {
-        write.lock();
+    public E get(int index) {
+        rwLock.readLock().lock();
         try {
-            return that.pollFirst();
+            return target.get(index);
         } finally {
-            write.unlock();
+            rwLock.readLock().unlock();
         }
     }
 
     @Override
-    public E pollLast() {
-        write.lock();
+    public E getFirst() {
+        rwLock.readLock().lock();
         try {
-            return that.pollLast();
+            return target.getFirst();
         } finally {
-            write.unlock();
+            rwLock.readLock().unlock();
         }
     }
 
     @Override
-    public E peekFirst() {
-        read.lock();
+    public E getLast() {
+        rwLock.readLock().lock();
         try {
-            return that.peekFirst();
+            return target.getLast();
         } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public E peekLast() {
-        read.lock();
-        try {
-            return that.peekLast();
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public boolean doWhile(Predicate<? super E> predicate) {
-        read.lock();
-        try {
-            return that.doWhile(predicate);
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public boolean removeIf(Predicate<? super E> predicate) {
-        write.lock();
-        try {
-            return that.removeIf(predicate);
-        } finally {
-            write.unlock();
-        }
-    }
-
-    @Override
-    public boolean contains(E element) {
-        read.lock();
-        try {
-            return that.contains(element);
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public boolean remove(E element) {
-        write.lock();
-        try {
-            return that.remove(element);
-        } finally {
-            write.unlock();
-        }
-    }
-
-    @Override
-    public int indexOf(E element) {
-        read.lock();
-        try {
-            return that.indexOf(element);
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public int lastIndexOf(E element) {
-        read.lock();
-        try {
-            return that.lastIndexOf(element);
-        } finally {
-            read.unlock();
-        }
-    }
-
-    @Override
-    public void sort() {
-        write.lock();
-        try {
-            that.sort();
-        } finally {
-            write.unlock();
+            rwLock.readLock().unlock();
         }
     }
 
     @Override
     @Deprecated
     public Iterator<E> iterator() {
-        final Iterator<E> thatIterator = that.iterator();
-        return new Iterator<E>() {
-
-            @Override
-            public boolean hasNext() {
-                read.lock();
-                try {
-                    return thatIterator.hasNext();
-                } finally {
-                    read.unlock();
-                }
-            }
-
-            @Override
-            public E next() {
-                read.lock();
-                try {
-                    return thatIterator.next();
-                } finally {
-                    read.unlock();
-                }
-            }
-
-            @Override
-            public void remove() {
-                write.lock();
-                try {
-                    thatIterator.remove();
-                } finally {
-                    write.unlock();
-                }
-            }
-
-        };
+        return new SharedIteratorImpl<E>(target.iterator(), rwLock);
     }
 
     @Override
-    public TableService<E>[] trySplit(int n) {
-        read.lock();
+    public E peekFirst() {
+        rwLock.readLock().lock();
         try {
-            return trySplitDefault(n);
+            return target.peekFirst();
         } finally {
-            read.unlock();
-        } 
+            rwLock.readLock().unlock();
+        }
     }
 
     @Override
-    public FullComparator<? super E> comparator() {
-        read.lock();
+    public E peekLast() {
+        rwLock.readLock().lock();
         try {
-            return that.comparator();
+            return target.peekLast();
         } finally {
-            read.unlock();
-        } 
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public E pollFirst() {
+        rwLock.writeLock().lock();
+        try {
+            return target.pollFirst();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public E pollLast() {
+        rwLock.writeLock().lock();
+        try {
+            return target.pollLast();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public E remove(int index) {
+        rwLock.writeLock().lock();
+        try {
+            return target.remove(index);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public E removeFirst() {
+        rwLock.writeLock().lock();
+        try {
+            return target.removeFirst();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter,
+            IterationController controller) {
+        rwLock.writeLock().lock();
+        try {
+            return target.removeIf(filter, controller);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public E removeLast() {
+        rwLock.writeLock().lock();
+        try {
+            return target.removeLast();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public E set(int index, E element) {
+        rwLock.writeLock().lock();
+        try {
+            return target.set(index, element);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public int size() {
+        rwLock.readLock().lock();
+        try {
+            return target.size();
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public SharedCollectionImpl<E>[] trySplit(int n) {
+        return SharedCollectionImpl.splitOf(target, n, rwLock);
     }
     
-    @Override
-    public void setComparator(FullComparator<? super E> cmp) {
-        write.lock();
-        try {
-            that.setComparator(cmp);
-        } finally {
-            write.unlock();
-        }       
-    }   
+    protected TableService<E> target() {
+        return target;
+    }
+    
+    protected ReadWriteLockImpl rwLock() {
+        return rwLock;
+    }
 
-    private static final long serialVersionUID = -1788031404105375117L;    
 }

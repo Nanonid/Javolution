@@ -10,97 +10,154 @@ package javolution.internal.util.map;
 
 import java.io.Serializable;
 import java.util.Map.Entry;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javolution.internal.util.collection.UnmodifiableCollectionImpl;
-import javolution.util.function.FullComparator;
+import javolution.internal.util.ReadWriteLockImpl;
+import javolution.internal.util.collection.SharedCollectionImpl;
+import javolution.internal.util.set.SharedSetImpl;
 import javolution.util.service.CollectionService;
 import javolution.util.service.MapService;
+import javolution.util.service.SetService;
 
 /**
  *  * A shared view over a map.
  */
-public final class SharedMapImpl<K, V> implements MapService<K, V>, Serializable {
+public class SharedMapImpl<K, V> implements MapService<K, V>, Serializable {
 
-    private final MapService<K, V> that;
-    private final Lock read;
-    private final Lock write;
+    private static final long serialVersionUID = 0x600L; // Version.
+    protected final ReadWriteLockImpl rwLock;
+    protected final MapService<K, V> target;
 
-    public SharedMapImpl(MapService<K,V> that, ReentrantReadWriteLock readWriteLock) {
-        this.that = that;
-        this.read  = readWriteLock.readLock();
-        this.write = readWriteLock.writeLock();        
+    public SharedMapImpl(MapService<K, V> target) {
+        this(target, new ReadWriteLockImpl());
+    }
+
+    public SharedMapImpl(MapService<K, V> target, ReadWriteLockImpl rwLock) {
+        this.target = target;
+        this.rwLock = rwLock;
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        rwLock.writeLock().lock();
+        try {
+            target.atomic(update);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
     public void clear() {
-        throw new UnsupportedOperationException("Unmodifiable");
+        rwLock.writeLock().lock();
+        try {
+            target.clear();
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
     public boolean containsKey(K key) {
-        return that.containsKey(key);
+        rwLock.readLock().lock();
+        try {
+            return target.containsKey(key);
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public SetService<Entry<K, V>> entrySet() {
+        return new SharedSetImpl<Entry<K, V>>(target.entrySet(), rwLock);
     }
 
     @Override
     public V get(K key) {
-        return that.get(key);
+        rwLock.readLock().lock();
+        try {
+            return target.get(key);
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public SetService<K> keySet() {
+        return new SharedSetImpl<K>(target.keySet(), rwLock);
     }
 
     @Override
     public V put(K key, V value) {
-        throw new UnsupportedOperationException("Unmodifiable");
-    }
-
-    @Override
-    public V remove(K key) {
-        throw new UnsupportedOperationException("Unmodifiable");
-    }
-
-    @Override
-    public int size() {
-        return that.size();
-    }
-
-    @Override
-    public CollectionService<Entry<K, V>> entrySet() {
-        return new UnmodifiableCollectionImpl<Entry<K, V>>(that.entrySet());
-    }
-
-    @Override
-    public CollectionService<V> values() {
-        return new UnmodifiableCollectionImpl<V>(that.values());
-    }
-
-    @Override
-    public CollectionService<K> keySet() {
-        return new UnmodifiableCollectionImpl<K>(that.keySet());
+        rwLock.writeLock().lock();
+        try {
+            return target.put(key, value);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
     public V putIfAbsent(K key, V value) {
-        throw new UnsupportedOperationException("Unmodifiable");
+        rwLock.writeLock().lock();
+        try {
+            return target.putIfAbsent(key, value);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public V remove(K key) {
+        rwLock.writeLock().lock();
+        try {
+            return target.remove(key);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
     public boolean remove(K key, V value) {
-        throw new UnsupportedOperationException("Unmodifiable");
+        rwLock.writeLock().lock();
+        try {
+            return target.remove(key, value);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
     public V replace(K key, V value) {
-        throw new UnsupportedOperationException("Unmodifiable");
+        rwLock.writeLock().lock();
+        try {
+            return target.replace(key, value);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
-        throw new UnsupportedOperationException("Unmodifiable");
+        rwLock.writeLock().lock();
+        try {
+            return target.replace(key, oldValue, newValue);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
     }
 
     @Override
-    public FullComparator<K> keyComparator() {
-        return that.keyComparator();
+    public int size() {
+        rwLock.readLock().lock();
+        try {
+            return target.size();
+        } finally {
+            rwLock.readLock().unlock();
+        }
     }
-    
+
+    @Override
+    public CollectionService<V> values() {
+        return new SharedCollectionImpl<V>(target.values(), rwLock);
+    }
 }

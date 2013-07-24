@@ -16,9 +16,9 @@ import org.osgi.util.tracker.ServiceTracker;
  * This class represents a context service tracker.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
-public final class ContextTracker<C extends AbstractContext<C>> {
+public final class ContextTracker<C extends AbstractContext> {
 
     ServiceTracker<C, C> tracker;
 
@@ -52,13 +52,15 @@ public final class ContextTracker<C extends AbstractContext<C>> {
                 }
             }
             if (tracker != null) { // Activated.
-                if (waitForService) return tracker.waitForService(0);
+                if (waitForService)
+                    return tracker.waitForService(0);
                 C ctx = tracker.getService();
-                if (ctx != null) return ctx;
+                if (ctx != null)
+                    return ctx;
             }
         } catch (InterruptedException ex) {
             // Stop waiting. 
         }
-        return defaultImpl; 
+        return defaultImpl;
     }
 }

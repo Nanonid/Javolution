@@ -11,8 +11,9 @@ package javolution.internal.xml;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import javolution.annotation.Format;
+
 import javolution.util.FastMap;
+import javolution.xml.DefaultXMLFormat;
 import javolution.xml.XMLContext;
 import javolution.xml.XMLFormat;
 import javolution.xml.stream.XMLStreamException;
@@ -21,7 +22,7 @@ import javolution.xml.stream.XMLStreamException;
  * Holds the default implementation of XMLContext.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 @SuppressWarnings("rawtypes")
 public final class XMLContextImpl extends XMLContext {
@@ -41,9 +42,9 @@ public final class XMLContextImpl extends XMLContext {
         XMLFormat xml = formats.get(type);
         if (xml != null)
             return xml;
-        Format format = type.getAnnotation(Format.class);
-        if ((format != null) && (format.xml() != XMLFormat.Default.class)) {
-            Class<? extends XMLFormat> formatClass = format.xml();
+        DefaultXMLFormat format = type.getAnnotation(DefaultXMLFormat.class);
+        if (format != null) {
+            Class<? extends XMLFormat> formatClass = format.value();
             try {
                 xml = formatClass.newInstance();
                 synchronized (formats) { // Required since possible concurrent use 

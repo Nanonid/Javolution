@@ -8,104 +8,130 @@
  */
 package javolution.util;
 
-import java.util.Comparator;
+import static javolution.lang.RealTime.Limit.LOG_N;
+
 import java.util.SortedSet;
 
-import javolution.annotation.RealTime;
-import javolution.internal.util.table.FractalTableImpl;
-import javolution.internal.util.table.NoDuplicateTableImpl;
-import javolution.internal.util.table.SharedTableImpl;
-import javolution.internal.util.table.SortedTableImpl;
-import javolution.internal.util.table.SubTableImpl;
-import javolution.internal.util.table.UnmodifiableTableImpl;
-import javolution.util.function.ComparatorService;
-import javolution.util.service.SetService;
-import javolution.util.service.TableService;
+import javolution.internal.util.map.sorted.FastSortedMapImpl;
+import javolution.internal.util.set.sorted.SharedSortedSetImpl;
+import javolution.internal.util.set.sorted.UnmodifiableSortedSetImpl;
+import javolution.lang.RealTime;
+import javolution.util.function.Comparators;
+import javolution.util.function.EqualityComparator;
+import javolution.util.service.SortedSetService;
 
 /**
  * <p> A high-performance sorted set with {@link RealTime real-time} behavior; 
  *     smooth capacity increase/decrease and minimal memory footprint.</p>
  *     
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public class FastSortedSet<E> extends FastSet<E> implements SortedSet<E> {
 
+    private static final long serialVersionUID = 0x600L; // Version.
+
     /**
-     * Creates an empty set ordered on elements natural order.
+     * Creates an empty sorted set ordered on elements natural order.
      */
     public FastSortedSet() {
-        super(...);
+        this(Comparators.STANDARD);
     }
 
     /**
-    * Creates an empty set ordered using the specified element comparator.
+    * Creates an empty sorted set ordered using the specified comparator.
     */
-   public FastSortedSet(ComparatorService<? super E> comparator) {
-       super(...);
-   }
-    /**
-     * Creates a set backed up by the specified implementation.
-     */
-    protected FastSet(SetService<E> implementation) {
-        super(implementation);        
+    public FastSortedSet(EqualityComparator<? super E> comparator) {
+        super(new FastSortedMapImpl<E, Void>(comparator, Comparators.IDENTITY).keySet());
     }
-    
+
+    /**
+     * Creates a sorted set backed up by the specified service implementation.
+     */
+    protected FastSortedSet(SortedSetService<E> service) {
+        super(service);
+    }
+
+    /***************************************************************************
+     * Views.
+     */
+
     @Override
     public FastSortedSet<E> unmodifiable() {
-        return new FastSortedSet<E>(new UnmodifiableTableImpl<E>(table));
+        return new FastSortedSet<E>(new UnmodifiableSortedSetImpl<E>(service()));
     }
 
     @Override
     public FastSortedSet<E> shared() {
-        return new FastSortedSet<E>(new SharedTableImpl<E>(table));
+        return new FastSortedSet<E>(new SharedSortedSetImpl<E>(service()));
     }
-        
+
+    /***************************************************************************
+     * FastSet operations with different time limit behavior.
+     */
+
     @Override
-    public TableService<E> service() {
-        return table;
+    @RealTime(limit = LOG_N)
+    public boolean add(E e) {
+        return super.add(e);
+    }
+
+    @Override
+    @RealTime(limit = LOG_N)
+    public boolean contains(Object obj) {
+        return super.contains(obj);
+    }
+
+    @Override
+    @RealTime(limit = LOG_N)
+    public boolean remove(Object obj) {
+        return super.remove(obj);
     }
 
     /***************************************************************************
      * SortedSet operations.
-     */    
-    
-    @SuppressWarnings("unchecked")
-    @Override
-    public Comparator<? super E> comparator() {
-        return (Comparator<? super E>) table.getComparator();
-    }
+     */
 
     @Override
+    @RealTime(limit = LOG_N)
     public FastSortedSet<E> subSet(E fromElement, E toElement) {
-        int fromIndex = SortedTableImpl.indexIfSortedOf(fromElement, table, 0, table.size());
-        int toIndex = SortedTableImpl.indexIfSortedOf(fromElement, table, 0, table.size());
-        return new FastSortedSet<E>(
-                    new SubTableImpl<E>(table, fromIndex, toIndex));
+        return new FastSortedSet<E>(service().subSet(fromElement, toElement));
     }
 
     @Override
-    public SortedSet<E> headSet(E toElement) {
-        int toIndex = SortedTableImpl.indexIfSortedOf(toElement, table, 0, table.size());
-        return new FastSortedSet<E>(
-                new SubTableImpl<E>(table, 0, toIndex));
+    @RealTime(limit = LOG_N)
+    public FastSortedSet<E> headSet(E toElement) {
+        return subSet(first(), toElement);
     }
 
     @Override
-    public SortedSet<E> tailSet(E fromElement) {
-        int fromIndex = SortedTableImpl.indexIfSortedOf(fromElement, table, 0, table.size());
-        return new FastSortedSet<E>(
-                new SubTableImpl<E>(table, fromIndex, table.size()));
+    @RealTime(limit = LOG_N)
+    public FastSortedSet<E> tailSet(E fromElement) {
+        return subSet(fromElement, last());
     }
 
     @Override
     public E first() {
-        return table.getFirst();
+        return service().first();
     }
 
     @Override
     public E last() {
-        return table.getLast();
+        return service().last();
     }
- 
+
+    /***************************************************************************
+     * Misc.
+     */
+
+    @Override
+    public FastSortedSet<E> addAll(E... elements) {
+        return (FastSortedSet<E>) super.addAll(elements);
+    }
+
+    @Override
+    protected SortedSetService<E> service() {
+        return (SortedSetService<E>) super.service();
+    }
+
 }

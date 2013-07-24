@@ -14,32 +14,19 @@ import javolution.util.service.TableService;
 
 /**
  * A quick sort utility class.
- *       
- * @author <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0.0, December 12, 2012
  */
 public class QuickSort<E> {
-      
-    private TableService<E> table;
+
     private Comparator<? super E> comparator;
-   
+    private TableService<E> table;
+
     public QuickSort(TableService<E> table, Comparator<? super E> comparator) {
         this.table = table;
         this.comparator = comparator;
     }
 
     public void sort() {
-       sort(0, table.size()); 
-    }
-    
-    // From Wikipedia Quick Sort - http://en.wikipedia.org/wiki/Quicksort
-    //
-    private void sort(int first, int last) {
-        if (first < last) {
-            int pivIndex = partition(first, last);
-            sort(first, (pivIndex - 1));
-            sort((pivIndex + 1), last);
-        }
+        sort(0, table.size());
     }
 
     private int partition(int f, int l) {
@@ -63,6 +50,16 @@ public class QuickSort<E> {
         table.set(f, table.get(down));
         table.set(down, piv);
         return down;
+    }
+
+    // From Wikipedia Quick Sort - http://en.wikipedia.org/wiki/Quicksort
+    //
+    private void sort(int first, int last) {
+        if (first < last) {
+            int pivIndex = partition(first, last);
+            sort(first, (pivIndex - 1));
+            sort((pivIndex + 1), last);
+        }
     }
 
 }

@@ -21,19 +21,20 @@ import javolution.lang.Configurable;
  *     The logic is then executed by a concurrent thread or by the current 
  *     thread itself if there is no concurrent thread immediately available 
  *     (the number of concurrent threads is limited, see {@link #CONCURRENCY}).
- *     [code]
- *     ConcurrentContext ctx = ConcurrentContext.enter(); 
- *     try { 
- *         ctx.execute(new Runnable() {...}); 
- *         ctx.execute(new Runnable() {...});  
- *     } finally {
- *         ctx.exit(); // Waits for all concurrent executions to complete.
- *                     // Reexports any exception raised during concurrent executions. 
- *     }
- *    [/code] or equivalent shorter notation:
- *    [code]
- *    ConcurrentContext.execute(new Runnable() {...}, new Runnable() {...});
- *    [/code]</p>
+ * [code]
+ * ConcurrentContext ctx = ConcurrentContext.enter(); 
+ * try { 
+ *     ctx.execute(new Runnable() {...}); 
+ *     ctx.execute(new Runnable() {...});  
+ * } finally {
+ *     ctx.exit(); // Waits for all concurrent executions to complete.
+ *                 // Re-exports any exception raised during concurrent executions. 
+ * }
+ * [/code]</p>
+ * <p> or equivalent shorter notation:
+ * [code]
+ * ConcurrentContext.execute(new Runnable() {...}, new Runnable() {...});
+ * [/code]</p>
  *     
  * <p> Only after all concurrent executions are completed, is the current 
  *     thread allowed to exit the scope of the concurrent context 
@@ -99,11 +100,12 @@ import javolution.lang.Configurable;
  *                }
  *            }
  *        }
- *     }[/code]
- *      Here is another example using {@link #execute(java.lang.Runnable[]) 
- *      execute(Runnable ...)} static method 
- *     (Karatsuba recursive multiplication for large integers).
- *      [code]
+ *     }[/code]</p>
+ *     
+ * <p> Here is another example using {@link #execute(java.lang.Runnable[]) 
+ *     execute(Runnable ...)} static method 
+ *    (Karatsuba recursive multiplication for large integers).
+ * [code]
  *     public LargeInteger multiply(LargeInteger that) {
  *         if (that._size <= 1) {
  *             return multiply(that.longValue()); // Direct multiplication.
@@ -134,26 +136,23 @@ import javolution.lang.Configurable;
  *         public void run() {
  *             result = left.times(right); // Recursive.
  *         }
- *     };
- *    [/code]</p>
+ *     };[/code]</p>
  *          
  * <p> Concurrency can be adjusted or disabled. The maximum concurrency 
  *     is defined by the {@link #CONCURRENCY} local parameter. 
- *    [code]
- *    LocalContext ctx = LocalContext.enter(); 
- *    try { 
- *        // Performs analysis sequentially.
- *        ctx.setLocalValue(ConcurrentContext.CONCURRENCY, 0);
- *        runAnalysis();  
- *    } finally {
- *        ctx.exit(); // Back to previous concurrency settings.  
- *    }[/code]</p>
+ * [code]
+ * LocalContext ctx = LocalContext.enter(); 
+ * try { 
+ *    ctx.override(ConcurrentContext.CONCURRENCY, 0); // No impact on others threads.
+ *    runAnalysis();  // Performs analysis sequentially.
+ * } finally {
+ *    ctx.exit(); // Back to previous concurrency settings.  
+ * }[/code]</p>
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
  * @version 6.0 December 12, 2012
  */
-public abstract class ConcurrentContext extends
-        AbstractContext<ConcurrentContext> {
+public abstract class ConcurrentContext extends AbstractContext {
 
     /**
      * Indicates whether or not static methods will block for an OSGi published
@@ -169,7 +168,8 @@ public abstract class ConcurrentContext extends
      * <code>-Djavolution.context.ConcurrentContext#CONCURRENCY=0</code>
      * disables concurrency. 
      */
-    public static final LocalParameter<Integer> CONCURRENCY = new LocalParameter<Integer>(
+    public static final LocalContext.Parameter<Integer> CONCURRENCY 
+    = new LocalContext.Parameter<Integer>(
             Runtime.getRuntime().availableProcessors());
 
     /**
@@ -183,7 +183,11 @@ public abstract class ConcurrentContext extends
      * @return the new concurrent context implementation entered.
      */
     public static ConcurrentContext enter() {
-        return ConcurrentContext.current().inner().enterScope();
+        ConcurrentContext ctx = AbstractContext.current(ConcurrentContext.class);
+        if (ctx == null) {
+            ctx = CONCURRENT_CONTEXT_TRACKER.getService(WAIT_FOR_SERVICE.get(), DEFAULT);
+        }
+        return (ConcurrentContext) ctx.enterInner();
     }
 
     /**
@@ -239,47 +243,6 @@ public abstract class ConcurrentContext extends
     @Override
     public void exit() { // Redefine here for documentation purpose.
         super.exit();
-    }
-
-    /**
-     * Sets this concurrent context as the current context for the 
-     * current thread. This method is particularly useful when users
-     * want to create their own threads and make them inherits the 
-     * current context stack. That inherited context stack remains 
-     * invariant for the child thread even when the parent thread exits
-     * contexts scopes or enter new ones.
-     * [code]
-     * ConcurrentContext ctx = ConcurrentContext.enter();
-     * try {
-     *     MyThread myThread = new MyThread();
-     *     myThread.parentContext = ctx;
-     *     myThread.start(); // Autonomous thread inheriting an invariant view of the context stack.
-     * } finally {
-     *    ctx.exit(); 
-     * }
-     * ...
-     * class MyThread extends Thread {
-     *     ConcurrentContext parentContext;
-     *     public void run() {
-     *         parentContext.setCurrent(); 
-     *         ...
-     *     }
-     * } 
-     * [/code]</p>
-     */
-    public void setCurrent() {
-        CURRENT.set(this);
-    }
-
-    /**
-     * Returns the current concurrent context.
-     */
-    protected static ConcurrentContext current() {
-        ConcurrentContext ctx = AbstractContext
-                .current(ConcurrentContext.class);
-        if (ctx != null)
-            return ctx;
-        return CONCURRENT_CONTEXT_TRACKER.getService(WAIT_FOR_SERVICE.get(), DEFAULT);
     }
 
     private static final ConcurrentContextImpl DEFAULT = new ConcurrentContextImpl();

@@ -9,23 +9,30 @@
 package javolution.internal.util.set;
 
 import java.io.Serializable;
+import java.util.Iterator;
 
+import javolution.internal.util.UnmodifiableIteratorImpl;
 import javolution.internal.util.collection.UnmodifiableCollectionImpl;
+import javolution.util.function.Consumer;
+import javolution.util.function.EqualityComparator;
+import javolution.util.function.Predicate;
 import javolution.util.service.SetService;
 
 /**
  * An unmodifiable view over a set.
  */
-public class UnmodifiableSetImpl<E> extends UnmodifiableCollectionImpl<E> implements SetService<E>,
-        Serializable {
+public class UnmodifiableSetImpl<E> implements SetService<E>, Serializable {
 
-    public UnmodifiableSetImpl(SetService<E> that) {
-        super(that);
+    private static final long serialVersionUID = 0x600L; // Version.
+    private final SetService<E> target;
+
+    public UnmodifiableSetImpl(SetService<E> target) {
+        this.target = target;
     }
 
     @Override
-    public int size() {
-        return ((SetService<E>)target).size();
+    public boolean add(E element) {
+        throw new UnsupportedOperationException("Unmodifiable");
     }
 
     @Override
@@ -34,14 +41,52 @@ public class UnmodifiableSetImpl<E> extends UnmodifiableCollectionImpl<E> implem
     }
 
     @Override
+    public EqualityComparator<? super E> comparator() {
+        return target.comparator();
+    }
+
+    @Override
     public boolean contains(E e) {
-        return ((SetService<E>)target).contains(e);
+        return target.contains(e);
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> consumer, IterationController controller) {
+        target.forEach(consumer, controller);
+    }
+
+    @Override
+    public Iterator<E> iterator() {
+        return new UnmodifiableIteratorImpl<E>(target.iterator());
     }
 
     @Override
     public boolean remove(E e) {
         throw new UnsupportedOperationException("Unmodifiable");
     }
-     
-    private static final long serialVersionUID = 5049669192830982105L;
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter, IterationController controller) {
+        throw new UnsupportedOperationException("Unmodifiable");
+    }
+
+    @Override
+    public int size() {
+        return target.size();
+    }
+
+    @Override
+    public UnmodifiableCollectionImpl<E>[] trySplit(int n) {
+        return UnmodifiableCollectionImpl.splitOf(this, n);
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        throw new UnsupportedOperationException("Unmodifiable");
+    }
+
+    protected SetService<E> target() {
+        return target;
+    }
+    
 }

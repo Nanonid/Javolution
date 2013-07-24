@@ -8,8 +8,12 @@
  */
 package javolution.internal.util.table;
 
+import java.io.Serializable;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
+import javolution.util.function.Consumer;
+import javolution.util.function.EqualityComparator;
 import javolution.util.function.FullComparator;
 import javolution.util.function.Predicate;
 import javolution.util.service.TableService;
@@ -17,179 +21,200 @@ import javolution.util.service.TableService;
 /**
  * A view over a portion of a table. 
  */
-public final class SubTableImpl<E> extends AbstractTableImpl<E> {
+public class SubTableImpl<E> implements TableService<E>, Serializable {
 
-    private final TableService<E> that;
+    private static final long serialVersionUID = 0x600L; // Version.
+    protected int fromIndex;
+    protected int toIndex;
+    private final TableService<E> target;
 
-    private int fromIndex;
-
-    private int toIndex;
-
-    public SubTableImpl(TableService<E> that, int fromIndex, int toIndex) {
-        this.that = that;
+    public SubTableImpl(TableService<E> target, int fromIndex, int toIndex) {
+        if ((fromIndex < 0) || (toIndex > target.size()) || (fromIndex > toIndex))
+            throw new IndexOutOfBoundsException(
+                    "fromIndex: " + fromIndex + ", toIndex: " + toIndex + 
+                    ", size(): " + target.size()); // As per List.subList contract.
+        this.target = target;
         this.fromIndex = fromIndex;
         this.toIndex = toIndex;
     }
 
-    // 
-    // Impacted methods.
-    //
-    
     @Override
-    public int size() {
-        return toIndex - fromIndex;
-    }
-
-    @Override
-    public E get(int index) {
-        if ((index < 0) && (index >= size())) indexError(index);
-        return that.get(index + fromIndex);
-    }
-
-    @Override
-    public E set(int index, E element) {
-        if ((index < 0) && (index >= size())) indexError(index);
-        return that.set(index + fromIndex, element);
+    public boolean add(E element) {
+        add(size(), element);
+        return true;
     }
 
     @Override
     public void add(int index, E element) {
         if ((index < 0) && (index > size())) indexError(index);
-        that.add(index + fromIndex, element);
+        target.add(index + fromIndex, element);
+    }
+
+    @Override
+    public void addFirst(E element) {
+        add(0, element);
+    }
+
+    @Override
+    public void addLast(E element) {
+        add(size(), element);
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        target.atomic(update);
+    }
+
+    @Override
+    public void clear() {
+        for (int i=size(); --i >= 0;) {
+            remove(i);
+        }
+    }
+
+    @Override
+    public FullComparator<? super E> comparator() {
+        return target.comparator();
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> consumer,
+            IterationController controller) {
+        int size = size();
+        if (!controller.doReversed()) {
+            for (int i = 0; i < size; i++) {
+                consumer.accept(get(i));
+                if (controller.isTerminated())
+                    break;
+            }
+        } else { // Reversed.
+            for (int i = size; --i >= 0;) {
+                consumer.accept(get(i));
+                if (controller.isTerminated())
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public E get(int index) {
+        if ((index < 0) && (index >= size())) indexError(index);
+        return target.get(index + fromIndex);
+    }
+
+    @Override
+    public E getFirst() {
+        if (size() == 0) emptyError();
+        return get(0);
+    }
+
+    @Override
+    public E getLast() {
+        if (size() == 0) emptyError();
+        return get(size() - 1);
+    }
+
+    @Override
+    public Iterator<E> iterator() {
+        return new TableIteratorImpl<E>(this, 0);
+    }
+
+    @Override
+    public E peekFirst() {
+        return (size() == 0) ? null : getFirst();
+    }
+
+    @Override
+    public E peekLast() {
+        return (size() == 0) ? null : getLast();
+    }
+
+    @Override
+    public E pollFirst() {
+        return (size() == 0) ? null : removeFirst();
+    }
+    
+    @Override
+    public E pollLast() {
+        return (size() == 0) ? null : removeLast();
     }
 
     @Override
     public E remove(int index) {
         if ((index < 0) && (index >= size())) indexError(index);
         toIndex--;
-        return that.remove(index + fromIndex);
-    }
-      
-    @Override
-    public boolean add(E element) {
-        return addDefault(element);
-    }
-
-    @Override
-    public boolean contains(E element) {
-        return containsDefault(element);
-    }
-
-    @Override
-    public boolean remove(E element) {
-        return removeDefault(element);
-    }
-
-    @Override
-    public int indexOf(E element) {
-        return indexOfDefault(element);
-    }
-
-    @Override
-    public int lastIndexOf(E element) {
-        return lastIndexOfDefault(element);
-    }
-
-    @Override
-    public void sort() {
-        sortDefault();
-    }
-   
-    @Override
-    public void clear() {
-        removeAllDefault(new Predicate<E>() {
-
-            @Override
-            public boolean test(E param) {
-                return true;
-            }
-            
-        });
-    }
-
-    @Override
-    public Iterator<E> iterator() {
-        return iteratorDefault();
-    }
-
-    @Override
-    public boolean doWhile(Predicate<? super E> predicate) {
-        return doWhileDefault(predicate);
-    }
-
-    @Override
-    public boolean removeIf(Predicate<? super E> predicate) {
-        return removeAllDefault(predicate);
-    }
-
-    @Override
-    public E getFirst() {
-        return getFirstDefault();
-    }
-
-    @Override
-    public E getLast() {
-        return getLastDefault();
-    }
-
-    @Override
-    public void addFirst(E element) {
-        addFirstDefault(element);
-    }
-
-    @Override
-    public void addLast(E element) {
-        addLastDefault(element);
+        return target.remove(index + fromIndex);
     }
 
     @Override
     public E removeFirst() {
-        return removeFirstDefault();
+        if (size() == 0)
+            emptyError();
+        return remove(0);
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter,
+            IterationController controller) {
+        int size = size();
+        boolean removed = false;
+        if (!controller.doReversed()) {
+            for (int i = 0; i < size; i++) {
+                if (filter.test(get(i))) {
+                    remove(i--);
+                    removed = true;
+                }
+                if (controller.isTerminated())
+                    break;
+            }
+        } else { // Reversed.
+            for (int i = size; --i >= 0;) {
+                if (filter.test(get(i))) {
+                    remove(i);
+                    removed = true;
+                }
+                if (controller.isTerminated())
+                    break;
+            }
+        }
+        return removed;
     }
 
     @Override
     public E removeLast() {
-        return removeLastDefault();
+        if (size() == 0)
+            emptyError();
+        return remove(size() - 1);
     }
 
     @Override
-    public E pollFirst() {
-        return pollFirstDefault();
+    public E set(int index, E element) {
+        if ((index < 0) && (index >= size())) indexError(index);
+        return target.set(index + fromIndex, element);
     }
 
     @Override
-    public E pollLast() {
-        return pollLastDefault();
-    }
-
-    @Override
-    public E peekFirst() {
-        return peekFirstDefault();
-    }
-
-    @Override
-    public E peekLast() {
-        return peekLastDefault();
-    }
-  
-    @Override
-    public TableService<E>[] trySplit(int n) {
-        return trySplitDefault(n);
-    }
-
-    //
-    // If no impact, forwards to inner table.
-    // 
-
-    @Override
-    public FullComparator<? super E> comparator() {
-        return that.comparator();
+    public int size() {
+        return toIndex - fromIndex;
     }
     
     @Override
-    public void setComparator(FullComparator<? super E> cmp) {
-        that.setComparator(cmp);
-    }  
- 
-    private static final long serialVersionUID = 475452359149518413L;
+    public TableService<E>[] trySplit(int n) {
+        return FastTableImpl.splitOf(this, n);
+    }
+
+    protected TableService<E> target() {
+        return target;
+    }
+
+    /** Throws NoSuchElementException */
+    protected void emptyError() {
+        throw new NoSuchElementException("Empty Table");
+    }
+
+    /** Throws IndexOutOfBoundsException */
+    protected void indexError(int index) {
+        throw new IndexOutOfBoundsException("index: " + index + ", size: "
+                + size());
+    }
 }

@@ -9,29 +9,29 @@
 package javolution.text;
 
 import java.io.IOException;
-import javolution.annotation.StackSafe;
 import javolution.lang.MathLib;
+import javolution.lang.RealTime;
 
 /**
  * <p> Utility class to parse {@link CharSequence} into primitive types and 
  *     to format primitive types into any {@link Appendable}.</p>
  *
  * <p> Methods from this class <b>do not create temporary objects</b> and
- *     are typically faster than standard library methods (see 
- *     <a href="http://javolution.org/doc/benchmark.html">benchmark</a>).</p>
+ *     are typically faster than standard library methods.</p>
  *     
  * <p> The number of digits when formatting floating point numbers can be 
  *     specified. The default setting for <code>double</code> is 17 digits 
  *     or even 16 digits when the conversion is lossless back and forth
- *     (mimic the standard library formatting). For example:[code]
- *         TypeFormat.format(0.2, a) = "0.2" // 17 or 16 digits (as long as lossless conversion), remove trailing zeros.
- *         TypeFormat.format(0.2, 17, false, false, a) = "0.20000000000000001" // Closest 17 digits number.
- *         TypeFormat.format(0.2, 19, false, false, a) = "0.2000000000000000111" // Closest 19 digits.
- *         TypeFormat.format(0.2, 4, false, false, a) = "0.2" // Fixed-point notation, remove trailing zeros.
- *         TypeFormat.format(0.2, 4, false, true, a) = "0.2000" // Fixed-point notation, fixed number of digits.
- *         TypeFormat.format(0.2, 4, true, false, a) = "2.0E-1" // Scientific notation, remove trailing zeros.  
- *         TypeFormat.format(0.2, 4, true, true, a) = "2.000E-1" // Scientific notation, fixed number of digits.
- *         [/code]</p>        
+ *     (mimic the standard library formatting).</p>
+ * <p>[code]
+ * TypeFormat.format(0.2, a) = "0.2" // 17 or 16 digits (as long as lossless conversion), remove trailing zeros.
+ * TypeFormat.format(0.2, 17, false, false, a) = "0.20000000000000001" // Closest 17 digits number.
+ * TypeFormat.format(0.2, 19, false, false, a) = "0.2000000000000000111" // Closest 19 digits.
+ * TypeFormat.format(0.2, 4, false, false, a) = "0.2" // Fixed-point notation, remove trailing zeros.
+ * TypeFormat.format(0.2, 4, false, true, a) = "0.2000" // Fixed-point notation, fixed number of digits.
+ * TypeFormat.format(0.2, 4, true, false, a) = "2.0E-1" // Scientific notation, remove trailing zeros.  
+ * TypeFormat.format(0.2, 4, true, true, a) = "2.000E-1" // Scientific notation, fixed number of digits.
+ * [/code]</p>        
  *
  * <p> For non-primitive objects, formatting is typically performed using 
  *     specialized {@link TextFormat} instances.</p>
@@ -39,14 +39,13 @@ import javolution.lang.MathLib;
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
  * @version 5.3, February 15, 2009
  */
-@StackSafe
+@RealTime
 public final class TypeFormat {
 
     /**
      * Default constructor (forbids derivation).
      */
-    private TypeFormat() {
-    }
+    private TypeFormat() {}
 
     /////////////
     // PARSING //
@@ -66,13 +65,20 @@ public final class TypeFormat {
     public static boolean parseBoolean(CharSequence csq, Cursor cursor) {
         int start = cursor.getIndex();
         int end = csq.length();
-        if ((end >= start + 5) && (csq.charAt(start) == 'f' || csq.charAt(start) == 'F')) { // False.
-            if ((csq.charAt(++start) == 'a' || csq.charAt(start) == 'A') && (csq.charAt(++start) == 'l' || csq.charAt(start) == 'L') && (csq.charAt(++start) == 's' || csq.charAt(start) == 'S') && (csq.charAt(++start) == 'e' || csq.charAt(start) == 'E')) {
+        if ((end >= start + 5)
+                && (csq.charAt(start) == 'f' || csq.charAt(start) == 'F')) { // False.
+            if ((csq.charAt(++start) == 'a' || csq.charAt(start) == 'A')
+                    && (csq.charAt(++start) == 'l' || csq.charAt(start) == 'L')
+                    && (csq.charAt(++start) == 's' || csq.charAt(start) == 'S')
+                    && (csq.charAt(++start) == 'e' || csq.charAt(start) == 'E')) {
                 cursor.increment(5);
                 return false;
             }
-        } else if ((end >= start + 4) && (csq.charAt(start) == 't' || csq.charAt(start) == 'T')) // True.
-            if ((csq.charAt(++start) == 'r' || csq.charAt(start) == 'R') && (csq.charAt(++start) == 'u' || csq.charAt(start) == 'U') && (csq.charAt(++start) == 'e' || csq.charAt(start) == 'E')) {
+        } else if ((end >= start + 4)
+                && (csq.charAt(start) == 't' || csq.charAt(start) == 'T')) // True.
+            if ((csq.charAt(++start) == 'r' || csq.charAt(start) == 'R')
+                    && (csq.charAt(++start) == 'u' || csq.charAt(start) == 'U')
+                    && (csq.charAt(++start) == 'e' || csq.charAt(start) == 'E')) {
                 cursor.increment(4);
                 return true;
             }
@@ -90,11 +96,12 @@ public final class TypeFormat {
     public static boolean parseBoolean(CharSequence csq) {
         Cursor cursor = new Cursor();
         boolean result = parseBoolean(csq, cursor);
-        if (!cursor.atEnd(csq)) 
-            throw new IllegalArgumentException("Extraneous characters \"" + cursor.tail(csq) + "\"");
+        if (!cursor.atEnd(csq))
+            throw new IllegalArgumentException("Extraneous characters \""
+                    + cursor.tail(csq) + "\"");
         return result;
     }
-    
+
     /**
      * Parses the specified character sequence from the specified position 
      * as a signed <code>byte</code> in the specified radix.
@@ -127,8 +134,9 @@ public final class TypeFormat {
     public static byte parseByte(CharSequence csq, int radix) {
         Cursor cursor = new Cursor();
         byte result = parseByte(csq, radix, cursor);
-        if (!cursor.atEnd(csq)) 
-            throw new IllegalArgumentException("Extraneous characters \"" + cursor.tail(csq) + "\"");
+        if (!cursor.atEnd(csq))
+            throw new IllegalArgumentException("Extraneous characters \""
+                    + cursor.tail(csq) + "\"");
         return result;
     }
 
@@ -192,8 +200,9 @@ public final class TypeFormat {
     public static short parseShort(CharSequence csq, int radix) {
         Cursor cursor = new Cursor();
         short result = parseShort(csq, radix, cursor);
-        if (!cursor.atEnd(csq)) 
-            throw new IllegalArgumentException("Extraneous characters \"" + cursor.tail(csq) + "\"");
+        if (!cursor.atEnd(csq))
+            throw new IllegalArgumentException("Extraneous characters \""
+                    + cursor.tail(csq) + "\"");
         return result;
     }
 
@@ -246,11 +255,12 @@ public final class TypeFormat {
             char c = csq.charAt(i);
             int digit = (c <= '9') ? c - '0'
                     : ((c <= 'Z') && (c >= 'A')) ? c - 'A' + 10
-                    : ((c <= 'z') && (c >= 'a')) ? c - 'a' + 10 : -1;
+                            : ((c <= 'z') && (c >= 'a')) ? c - 'a' + 10 : -1;
             if ((digit >= 0) && (digit < radix)) {
                 int newResult = result * radix - digit;
                 if (newResult > result)
-                    throw new NumberFormatException("Overflow parsing " + csq.subSequence(start, end));
+                    throw new NumberFormatException("Overflow parsing "
+                            + csq.subSequence(start, end));
                 result = newResult;
             } else if ((c == '-') && (i == start))
                 isNegative = true;
@@ -261,9 +271,12 @@ public final class TypeFormat {
         }
         // Requires one valid digit character and checks for opposite overflow.
         if ((result == 0) && ((end == 0) || (csq.charAt(i - 1) != '0')))
-            throw new NumberFormatException("Invalid integer representation for " + csq.subSequence(start, end));
+            throw new NumberFormatException(
+                    "Invalid integer representation for "
+                            + csq.subSequence(start, end));
         if ((result == Integer.MIN_VALUE) && !isNegative)
-            throw new NumberFormatException("Overflow parsing " + csq.subSequence(start, end));
+            throw new NumberFormatException("Overflow parsing "
+                    + csq.subSequence(start, end));
         cursor.increment(i - start);
         return isNegative ? result : -result;
     }
@@ -282,8 +295,9 @@ public final class TypeFormat {
     public static int parseInt(CharSequence csq, int radix) {
         Cursor cursor = new Cursor();
         int result = parseInt(csq, radix, cursor);
-        if (!cursor.atEnd(csq)) 
-            throw new IllegalArgumentException("Extraneous characters \"" + cursor.tail(csq) + "\"");
+        if (!cursor.atEnd(csq))
+            throw new IllegalArgumentException("Extraneous characters \""
+                    + cursor.tail(csq) + "\"");
         return result;
     }
 
@@ -336,11 +350,12 @@ public final class TypeFormat {
             char c = csq.charAt(i);
             int digit = (c <= '9') ? c - '0'
                     : ((c <= 'Z') && (c >= 'A')) ? c - 'A' + 10
-                    : ((c <= 'z') && (c >= 'a')) ? c - 'a' + 10 : -1;
+                            : ((c <= 'z') && (c >= 'a')) ? c - 'a' + 10 : -1;
             if ((digit >= 0) && (digit < radix)) {
                 long newResult = result * radix - digit;
                 if (newResult > result)
-                    throw new NumberFormatException("Overflow parsing " + csq.subSequence(start, end));
+                    throw new NumberFormatException("Overflow parsing "
+                            + csq.subSequence(start, end));
                 result = newResult;
             } else if ((c == '-') && (i == start))
                 isNegative = true;
@@ -351,9 +366,12 @@ public final class TypeFormat {
         }
         // Requires one valid digit character and checks for opposite overflow.
         if ((result == 0) && ((end == 0) || (csq.charAt(i - 1) != '0')))
-            throw new NumberFormatException("Invalid integer representation for " + csq.subSequence(start, end));
+            throw new NumberFormatException(
+                    "Invalid integer representation for "
+                            + csq.subSequence(start, end));
         if ((result == Long.MIN_VALUE) && !isNegative)
-            throw new NumberFormatException("Overflow parsing " + csq.subSequence(start, end));
+            throw new NumberFormatException("Overflow parsing "
+                    + csq.subSequence(start, end));
         cursor.increment(i - start);
         return isNegative ? result : -result;
     }
@@ -372,8 +390,9 @@ public final class TypeFormat {
     public static long parseLong(CharSequence csq, int radix) {
         Cursor cursor = new Cursor();
         long result = parseLong(csq, radix, cursor);
-        if (!cursor.atEnd(csq)) 
-            throw new IllegalArgumentException("Extraneous characters \"" + cursor.tail(csq) + "\"");
+        if (!cursor.atEnd(csq))
+            throw new IllegalArgumentException("Extraneous characters \""
+                    + cursor.tail(csq) + "\"");
         return result;
     }
 
@@ -478,7 +497,7 @@ public final class TypeFormat {
             int digit = c - '0';
             if ((digit >= 0) && (digit < 10)) {
                 long tmp = decimal * 10 + digit;
-                if (tmp < decimal)
+                if ((decimal > LONG_MAX_DIV10) || (tmp < decimal))
                     throw new NumberFormatException(
                             "Too many digits - Overflow");
                 decimal = tmp;
@@ -507,7 +526,7 @@ public final class TypeFormat {
                 int digit = c - '0';
                 if ((digit >= 0) && (digit < 10)) {
                     int tmp = exp * 10 + digit;
-                    if (tmp < exp)
+                    if ((exp > INT_MAX_DIV10) || (tmp < exp))
                         throw new NumberFormatException("Exponent Overflow");
                     exp = tmp;
                 } else
@@ -520,9 +539,12 @@ public final class TypeFormat {
                 exp = -exp;
         }
         cursor.increment(i - start);
-        return javolution.lang.MathLib.toDoublePow10(decimal, exp - fractionLength);
+        return javolution.lang.MathLib.toDoublePow10(decimal, exp
+                - fractionLength);
     }
-
+    private static final int INT_MAX_DIV10 = Integer.MAX_VALUE / 10;
+    private static final long LONG_MAX_DIV10 = Long.MAX_VALUE / 10;
+    
     /**
      * Parses the whole specified character sequence as a <code>double</code>.
      * The format must be of the form:<code>
@@ -538,8 +560,9 @@ public final class TypeFormat {
             throws NumberFormatException {
         Cursor cursor = new Cursor();
         double result = parseDouble(csq, cursor);
-        if (!cursor.atEnd(csq)) 
-            throw new IllegalArgumentException("Extraneous characters \"" + cursor.tail(csq) + "\"");
+        if (!cursor.atEnd(csq))
+            throw new IllegalArgumentException("Extraneous characters \""
+                    + cursor.tail(csq) + "\"");
         return result;
     }
 
@@ -574,7 +597,7 @@ public final class TypeFormat {
     public static Appendable format(boolean b, Appendable a) throws IOException {
         return b ? a.append("true") : a.append("false");
     }
- 
+
     /**
      * Formats the specified <code>int</code> and appends the resulting
      * text (decimal representation) to the <code>Appendable</code> argument.
@@ -604,7 +627,8 @@ public final class TypeFormat {
      * @throws IllegalArgumentException if radix is not in [2 .. 36] range.
      * @throws IOException if an I/O exception occurs.
      */
-    public static Appendable format(int i, int radix, Appendable a) throws IOException {
+    public static Appendable format(int i, int radix, Appendable a)
+            throws IOException {
         if (a instanceof TextBuilder)
             return ((TextBuilder) a).append(i, radix);
         TextBuilder tb = new TextBuilder();
@@ -660,7 +684,8 @@ public final class TypeFormat {
      * @throws IOException if an I/O exception occurs.
      */
     public static Appendable format(float f, Appendable a) throws IOException {
-        return TypeFormat.format(f, 10, (MathLib.abs(f) >= 1E7) || (MathLib.abs(f) < 0.001), false, a);
+        return TypeFormat.format(f, 10,
+                (MathLib.abs(f) >= 1E7) || (MathLib.abs(f) < 0.001), false, a);
     }
 
     /**
@@ -673,7 +698,8 @@ public final class TypeFormat {
      * @see    TextBuilder#append(double)
      */
     public static Appendable format(double d, Appendable a) throws IOException {
-        return TypeFormat.format(d, -1, (MathLib.abs(d) >= 1E7) || (MathLib.abs(d) < 0.001), false, a);
+        return TypeFormat.format(d, -1,
+                (MathLib.abs(d) >= 1E7) || (MathLib.abs(d) < 0.001), false, a);
     }
 
     /**

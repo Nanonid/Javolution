@@ -8,25 +8,21 @@
  */
 package javolution.util.service;
 
+import javolution.util.function.EqualityComparator;
 
 /**
  * The set of related functionalities used to implement set collections.
  * 
  * @author <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public interface SetService<E> extends CollectionService<E> {
-
-    /**
-     * Returns the number of elements in this set.
-     */
-    int size();
 
     /**
      * Removes all of the elements from this set.
      */
     void clear();
-    
+
     /**
      * Indicates if this set contains the specified element.
      */
@@ -36,7 +32,12 @@ public interface SetService<E> extends CollectionService<E> {
      * Removes the specified element from this set. More formally,
      * removes an element {@code elem} such that
      * {@code getComparator().areEquals(elem, e))}.
-     */  
+     */
     boolean remove(E e);
-                      
+
+    /**
+     * Returns the number of elements in this set.
+     */
+    int size();
+
 }

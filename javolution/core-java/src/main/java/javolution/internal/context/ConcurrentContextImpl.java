@@ -15,7 +15,7 @@ import javolution.lang.MathLib;
  * Holds the default implementation of ConcurrentContext.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public final class ConcurrentContextImpl extends ConcurrentContext {
 
@@ -43,7 +43,7 @@ public final class ConcurrentContextImpl extends ConcurrentContext {
     protected ConcurrentContext inner() {
         ConcurrentContextImpl ctx = new ConcurrentContextImpl();
         int n = ConcurrentContext.CONCURRENCY.get();
-        ctx.concurrency = MathLib.min(n, NB_THREADS); 
+        ctx.concurrency = MathLib.min(n, NB_THREADS);
         return ctx;
     }
 
@@ -74,15 +74,13 @@ public final class ConcurrentContextImpl extends ConcurrentContext {
         } catch (InterruptedException ex) {
             this.error = ex;
         }
-        if (error == null) return; // Everything fine.
-        if (error instanceof RuntimeException) throw (RuntimeException) error;
-        if (error instanceof Error) throw (Error) error;
+        if (error == null)
+            return; // Everything fine.
+        if (error instanceof RuntimeException)
+            throw (RuntimeException) error;
+        if (error instanceof Error)
+            throw (Error) error;
         throw new RuntimeException(error);
-    }
-
-    @Override
-    public void setCurrent() {
-        super.setCurrent();
     }
 
     // Informs this context of the completion of a task (with possible error).

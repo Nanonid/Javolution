@@ -34,7 +34,7 @@ import javolution.util.function.Comparators;
  * @version 5.3, January 14, 2007
  * @see <a href="http://en.wikipedia.org/wiki/Qname">Wikipedia: QName</a> 
  */
-public final class QName implements XMLSerializable, Immutable, CharSequence {
+public final class QName implements XMLSerializable, Immutable<QName>, CharSequence {
 
     /**
      * Holds the local name.
@@ -54,14 +54,8 @@ public final class QName implements XMLSerializable, Immutable, CharSequence {
     /**
      * Holds the full name (String) to QName mapping.
      */
-    private static final FastMap<CharSequence, QName> FULL_NAME_TO_QNAME 
-         = new FastMap<CharSequence, QName>() {
-
-        public Comparators<CharSequence> keyComparator() {
-            return Comparators.LEXICAL;
-        }
-
-    };
+    private static final FastMap<CharSequence, QName> FULL_NAME_TO_QNAME = new FastMap<CharSequence, QName>(
+            Comparators.LEXICAL);
 
     /**
      * Creates a qualified name having the specified local name and namespace 
@@ -72,7 +66,8 @@ public final class QName implements XMLSerializable, Immutable, CharSequence {
      * @param toString the string representation.
      */
     private QName(String namespaceURI, String localName, String toString) {
-        _namespaceURI = (namespaceURI == null) ? null : new CharArray(namespaceURI);
+        _namespaceURI = (namespaceURI == null) ? null : new CharArray(
+                namespaceURI);
         _localName = new CharArray(localName);
         _toString = toString;
     }
@@ -86,7 +81,8 @@ public final class QName implements XMLSerializable, Immutable, CharSequence {
      */
     public static QName valueOf(CharSequence name) {
         QName qName = (QName) FULL_NAME_TO_QNAME.get(name);
-        return (qName != null) ? qName : QName.createNoNamespace(name.toString());
+        return (qName != null) ? qName : QName.createNoNamespace(name
+                .toString());
     }
 
     private static QName createNoNamespace(String name) {
@@ -123,7 +119,8 @@ public final class QName implements XMLSerializable, Immutable, CharSequence {
      * @param localName the local name.
      * @see #toString()
      */
-    public static QName valueOf(CharSequence namespaceURI, CharSequence localName) {
+    public static QName valueOf(CharSequence namespaceURI,
+            CharSequence localName) {
         if (namespaceURI == null)
             return QName.valueOf(localName);
         TextBuilder tmp = new TextBuilder();
@@ -214,8 +211,8 @@ public final class QName implements XMLSerializable, Immutable, CharSequence {
      * @return the character sequence starting at the specified
      *         <code>start</code> position and ending just before the specified
      *         <code>end</code> position.
-     * @throws IndexOutOfBoundsException if <code>(start < 0) || (end < 0) ||
-     *         (start > end) || (end > this.length())</code>
+     * @throws IndexOutOfBoundsException if {@code (start < 0) || (end < 0) ||
+     *         (start > end) || (end > this.length())}
      */
     public CharSequence subSequence(int start, int end) {
         return _toString.substring(start, end);
@@ -227,5 +224,10 @@ public final class QName implements XMLSerializable, Immutable, CharSequence {
     }
 
     private static final long serialVersionUID = -6126031630693748647L;
-  
+
+    @Override
+    public QName value() {
+        return this;
+    }
+
 }

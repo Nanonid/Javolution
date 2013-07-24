@@ -27,6 +27,7 @@ import javolution.lang.MathLib;
  */
 public class TextBuilder implements Appendable, CharSequence, Serializable {
 
+    private static final long serialVersionUID = 0x600L; // Version.
     // We do a full resize (and copy) only when the capacity is less than C1.
     // For large collections, multi-dimensional arrays are employed.
     private static final int B0 = 5; // Initial capacity in bits.
@@ -43,7 +44,7 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
      * Holds the current length.
      */
     private int _length;
-    
+
     /**
      * Holds current capacity.
      */
@@ -298,7 +299,8 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
         if (str == null)
             return append("null");
         if ((start < 0) || (end < 0) || (start > end) || (end > str.length()))
-            throw new IndexOutOfBoundsException("start: " + start + ", end: " + end + ", str.length(): " + str.length());
+            throw new IndexOutOfBoundsException("start: " + start + ", end: "
+                    + end + ", str.length(): " + str.length());
         int newLength = _length + end - start;
         while (_capacity < newLength) {
             increaseCapacity();
@@ -485,11 +487,11 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
         } else
             append(DIGIT_TO_CHAR[l1]);
     }
-    private final static char[] DIGIT_TO_CHAR = {'0', '1', '2', '3', '4', '5',
-        '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
-        'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-        'w', 'x', 'y', 'z'
-    };
+
+    private final static char[] DIGIT_TO_CHAR = { '0', '1', '2', '3', '4', '5',
+            '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
+            'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+            'w', 'x', 'y', 'z' };
 
     /**
      * Appends the decimal representation of the specified <code>long</code>
@@ -569,7 +571,8 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
      * @return <code>append(f, 10, (abs(f) &gt;= 1E7) || (abs(f) &lt; 0.001), false)</code>
      */
     public final TextBuilder append(float f) {
-        return append(f, 10, (MathLib.abs(f) >= 1E7) || (MathLib.abs(f) < 0.001), false);
+        return append(f, 10, (MathLib.abs(f) >= 1E7)
+                || (MathLib.abs(f) < 0.001), false);
     }
 
     /**
@@ -602,8 +605,8 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
      * @return <code>TypeFormat.format(d, digits, scientific, showZero, this)</code>
      * @throws IllegalArgumentException if <code>(digits &gt; 19)</code>)
      */
-    public final TextBuilder append(double d, int digits,
-            boolean scientific, boolean showZero) {
+    public final TextBuilder append(double d, int digits, boolean scientific,
+            boolean showZero) {
         if (digits > 19)
             throw new IllegalArgumentException("digits: " + digits);
         if (d != d) // NaN
@@ -646,7 +649,8 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
                 digits = 17;
                 m = m17;
             }
-        } else // Use the specified number of digits.
+        } else
+            // Use the specified number of digits.
             m = MathLib.toLongPow10(d, (digits - 1) - e);
 
         // Formats.
@@ -694,11 +698,12 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
             append(l);
         }
     }
-    private static final long[] POW10_LONG = new long[]{1L, 10L, 100L, 1000L,
-        10000L, 100000L, 1000000L, 10000000L, 100000000L, 1000000000L,
-        10000000000L, 100000000000L, 1000000000000L, 10000000000000L,
-        100000000000000L, 1000000000000000L, 10000000000000000L,
-        100000000000000000L, 1000000000000000000L};
+
+    private static final long[] POW10_LONG = new long[] { 1L, 10L, 100L, 1000L,
+            10000L, 100000L, 1000000L, 10000000L, 100000000L, 1000000000L,
+            10000000000L, 100000000000L, 1000000000000L, 10000000000000L,
+            100000000000000L, 1000000000000000L, 10000000000000000L,
+            100000000000000000L, 1000000000000000000L };
 
     /**
      * Inserts the specified character sequence at the specified location.
@@ -792,10 +797,11 @@ public class TextBuilder implements Appendable, CharSequence, Serializable {
     public final String toString() {
         return (_length < C1) ? new String(_low, 0, _length) : toLargeString();
     }
+
     private String toLargeString() {
         char[] data = new char[_length];
         this.getChars(0, _length, data, 0);
-        return new String(data, 0, _length);     
+        return new String(data, 0, _length);
     }
 
     /**

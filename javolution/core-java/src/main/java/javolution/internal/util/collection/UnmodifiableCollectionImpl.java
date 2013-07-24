@@ -10,105 +10,29 @@ package javolution.internal.util.collection;
 
 import java.util.Iterator;
 
-import javolution.util.function.CollectionConsumer;
+import javolution.internal.util.UnmodifiableIteratorImpl;
+import javolution.util.FastCollection;
+import javolution.util.function.Consumer;
 import javolution.util.function.FullComparator;
-import javolution.util.function.CollectionConsumer.Controller;
+import javolution.util.function.Predicate;
 import javolution.util.service.CollectionService;
 
 /**
  * An unmodifiable view over a collection.
  */
-public class UnmodifiableCollectionImpl<E> implements CollectionService<E> {
+public class UnmodifiableCollectionImpl<E> extends FastCollection<E> implements
+        CollectionService<E> {
 
+    private static final long serialVersionUID = 0x600L; // Version.
     private final CollectionService<E> target;
 
-    public UnmodifiableCollectionImpl(CollectionService<E> target) {
-        this.target = target;
-    }
-
-    @Override
-    public boolean add(E element) {
-        throw new UnsupportedOperationException("Unmodifiable");
-    }
-
-    @Override
-    public void atomicRead(Runnable action) {
-        target.atomicRead(action);
-    }
-
-    @Override
-    public void atomicWrite(Runnable action) {
-        target.atomicWrite(action);
-    }
-
-    @Override
-    public FullComparator<? super E> comparator() {
-        return target.comparator();
-    }
-
-    @Override
-    public void forEach(final CollectionConsumer<? super E> consumer) {
-        target.forEach(new NoRemoveConsumer<E>(consumer));
-    }
-
-    // This is a sequential consumer, hence collection.unmodifiable().parallel() 
-    // should be preferred to collection.parallel().unmodifiable()
-    private static class NoRemoveConsumer<E> implements CollectionConsumer.Sequential<E>,
-            Controller {
-        private final CollectionConsumer<? super E> actualConsumer;
-        private Controller actualController; // State ok, sequential consumer.
-
-        public NoRemoveConsumer(CollectionConsumer<? super E> consumer) {
-            actualConsumer = consumer;
-        }
-
-        @Override
-        public void accept(E e, Controller controller) {
-            actualController = controller;
-            actualConsumer.accept(e, this);
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("Unmodifiable");
-        }
-
-        @Override
-        public void terminate() {
-            actualController.terminate();
-        };
-
-    }
-
-    @Override
-    public Iterator<E> iterator() {
-        final Iterator<E> targetIterator = target.iterator();
-        return new Iterator<E>() {
-
-            @Override
-            public boolean hasNext() {
-                return targetIterator.hasNext();
-            }
-
-            @Override
-            public E next() {
-                return targetIterator.next();
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException("Unmodifiable");
-            }
-
-        };
-    }
-
+    /**
+     * Splits the specified collection into unmodifiable sub-collections.
+     */
     @SuppressWarnings("unchecked")
-    @Override
-    public CollectionService<E>[] trySplit(int n) {
+    public static <E> UnmodifiableCollectionImpl<E>[] splitOf(
+            CollectionService<E> target, int n) {
         CollectionService<E>[] tmp = target.trySplit(n);
-        if (tmp == null)
-            return null;
         UnmodifiableCollectionImpl<E>[] unmodifiables = new UnmodifiableCollectionImpl[tmp.length];
         for (int i = 0; i < tmp.length; i++) {
             unmodifiables[i] = new UnmodifiableCollectionImpl<E>(tmp[i]);
@@ -116,9 +40,50 @@ public class UnmodifiableCollectionImpl<E> implements CollectionService<E> {
         return unmodifiables;
     }
 
-	@Override
-	public void atomic(Runnable action) {
-		target.atomic(action);
-	}
+    public UnmodifiableCollectionImpl(CollectionService<E> target) {
+        this.target = target;
+    }
+
+    @Override
+    public boolean add(E element) {
+        throw new UnsupportedOperationException("Unmodifiable Collection");
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        throw new UnsupportedOperationException("Unmodifiable Collection");
+    }
+    
+    @Override
+    public FullComparator<? super E> comparator() {
+        return target.comparator();
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> consumer,
+            IterationController controller) {
+        target.forEach(consumer, controller);
+    }
+
+   @Override
+    public Iterator<E> iterator() {
+        return new UnmodifiableIteratorImpl<E>(target.iterator());
+    }
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter,
+            IterationController controller) {
+        throw new UnsupportedOperationException("Unmodifiable Collection");
+    }
+
+    @Override
+    protected CollectionService<E> service() {
+        return this;
+    }
+
+    @Override
+    public UnmodifiableCollectionImpl<E>[] trySplit(int n) {
+        return UnmodifiableCollectionImpl.splitOf(target, n);
+    }
 
 }

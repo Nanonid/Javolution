@@ -8,7 +8,6 @@
  */
 package javolution.util.function;
 
-
 /**
  * <p> A special type of function which does not return anything.</p>
  * 
@@ -18,8 +17,7 @@ package javolution.util.function;
  * @param <T> The type of input parameter to accept.
  *           
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
- * @see     CollectionConsumer
+ * @version 6.0, July 21, 2013
  */
 public interface Consumer<T> {
 

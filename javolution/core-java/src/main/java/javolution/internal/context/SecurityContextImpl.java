@@ -16,23 +16,25 @@ import javolution.util.FastTable;
  * Holds the default implementation of SecurityContext.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public final class SecurityContextImpl extends SecurityContext {
-    
-    private FastTable<Action> actions = new FastTable<Action>(); 
+
+    private FastTable<Action> actions = new FastTable<Action>();
 
     @Override
     public boolean isGranted(Permission<?> permission) {
         boolean isGranted = true;
-        for (Action a  : actions) {
-            if (a.permission.implies(permission)) isGranted = a.grant;
+        for (Action a : actions) {
+            if (a.permission.implies(permission))
+                isGranted = a.grant;
         }
         return isGranted;
     }
 
     @Override
-    public void grant(Permission<?> permission, Object certificate) throws SecurityException {
+    public void grant(Permission<?> permission, Object certificate)
+            throws SecurityException {
         Action a = new Action();
         a.grant = true;
         a.permission = permission;
@@ -40,7 +42,8 @@ public final class SecurityContextImpl extends SecurityContext {
     }
 
     @Override
-    public void revoke(Permission<?> permission, Object certificate) throws SecurityException {
+    public void revoke(Permission<?> permission, Object certificate)
+            throws SecurityException {
         Action a = new Action();
         a.grant = false;
         a.permission = permission;

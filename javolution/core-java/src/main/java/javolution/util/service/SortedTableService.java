@@ -8,20 +8,36 @@
  */
 package javolution.util.service;
 
-
 /**
  * The set of related functionalities used to implement sorted tables collections.
  * 
  * @author <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public interface SortedTableService<E> extends TableService<E> {
-    
+
     /** 
-     * Returns the insertion index of the specified element in this table.
-     * It is the smallest index of the element if the element was to be
-     * added to this sorted table (in the range {@code [0 .. size()]}).
+     * Adds the specified element only if not already present.
+     *  
+     * @return the index of the element added or the index of the element 
+     *         already present.
      */
-    int insertionIndexOf(E element);
+    int addIfAbsent(E element);
+
+    /** 
+     * Returns the index of the specified element or -1 if not present.
+     */
+    int indexOf(E element);
+
+    /** 
+     * Removes the specified element if present.
+     */
+    boolean remove(E element);
+
+    /** 
+     * Returns what would be the index of the specified element if it were
+     * to be added.
+     */
+    int slotOf(E element);
 
 }

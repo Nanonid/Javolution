@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import javolution.lang.MathLib;
+import javolution.util.function.EqualityComparator;
 import javolution.util.function.FullComparator;
 import javolution.util.function.Predicate;
 import javolution.util.service.TableService;
@@ -116,8 +117,12 @@ public abstract class AbstractTableImpl<E> implements TableService<E>, Serializa
         return true;
     }
 
-     final int indexOfDefault(E element) {
-        FullComparator<? super E> cmp = comparator();
+    public int indexOf(E element) {
+		return indexOfDefault(element);
+	}
+
+	final int indexOfDefault(E element) {
+		FullComparator<? super E> cmp = comparator();
         for (int i = 0, size = size(); i < size; i++) {
             if (cmp.areEqual(element, get(i)))
                 return i;
@@ -126,7 +131,7 @@ public abstract class AbstractTableImpl<E> implements TableService<E>, Serializa
     }
 
      final int lastIndexOfDefault(E element) {
-        FullComparator<? super E> cmp = comparator();
+    	FullComparator<? super E> cmp = comparator();
         for (int i = size(); i > 0;) {
             if (cmp.areEqual(element, get(--i)))
                 return i;

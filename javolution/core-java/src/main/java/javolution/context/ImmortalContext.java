@@ -19,27 +19,27 @@ import javolution.util.function.Supplier;
  *     always performed in immortal memory. </p>
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
- * @see javolution.annotation.StackSafe
+ * @version 6.0, July 21, 2013
  */
-public abstract class ImmortalContext extends AllocatorContext<ImmortalContext> {
+public abstract class ImmortalContext extends AllocatorContext {
 
     /**
      * Default constructor.
      */
-    protected ImmortalContext() {
-    }
-    
-   /**
-     * Enters a heap context instance (private since heap context
-     * is not configurable).
-     */
+    protected ImmortalContext() {}
+
+    /**
+      * Enters a heap context instance (private since heap context
+      * is not configurable).
+      */
     private static ImmortalContext enter() {
         ImmortalContext ctx = AbstractContext.current(ImmortalContext.class);
-        if (ctx != null) return ctx.inner().enterScope();
-        return IMMORTAL_CONTEXT_TRACKER.getService(false, DEFAULT).inner().enterScope();
+        if (ctx == null) {
+            ctx = IMMORTAL_CONTEXT_TRACKER.getService(false, DEFAULT);
+        }
+        return (ImmortalContext) ctx.enterInner();
     }
-    
+
     /**
      * Executes the specified logic allocating objects on the heap.
      */
@@ -77,6 +77,6 @@ public abstract class ImmortalContext extends AllocatorContext<ImmortalContext> 
             ctx.exit();
         }
     }
-    
+
     private static final ImmortalContextImpl DEFAULT = new ImmortalContextImpl();
 }

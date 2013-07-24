@@ -12,19 +12,27 @@ import java.io.Serializable;
 import java.util.Map.Entry;
 
 import javolution.internal.util.collection.UnmodifiableCollectionImpl;
-import javolution.util.function.FullComparator;
+import javolution.internal.util.set.UnmodifiableSetImpl;
 import javolution.util.service.CollectionService;
 import javolution.util.service.MapService;
+import javolution.util.service.SetService;
 
 /**
  *  * An unmodifiable view over a map.
  */
-public final class UnmodifiableMapImpl<K, V> implements MapService<K, V>, Serializable {
+public class UnmodifiableMapImpl<K, V> implements MapService<K, V>,
+        Serializable {
 
-    private final MapService<K,V> that;
+    private static final long serialVersionUID = 0x600L; // Version.
+    protected final MapService<K, V> target;
 
-    public UnmodifiableMapImpl(MapService<K,V> that) {
-        this.that = that;
+    public UnmodifiableMapImpl(MapService<K, V> target) {
+        this.target = target;
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        throw new UnsupportedOperationException("Unmodifiable");
     }
 
     @Override
@@ -34,12 +42,22 @@ public final class UnmodifiableMapImpl<K, V> implements MapService<K, V>, Serial
 
     @Override
     public boolean containsKey(K key) {
-        return that.containsKey(key);
+        return target.containsKey(key);
+    }
+
+    @Override
+    public SetService<Entry<K, V>> entrySet() {
+        return new UnmodifiableSetImpl<Entry<K, V>>(target.entrySet());
     }
 
     @Override
     public V get(K key) {
-        return that.get(key);
+        return target.get(key);
+    }
+
+    @Override
+    public SetService<K> keySet() {
+        return new UnmodifiableSetImpl<K>(target.keySet());
     }
 
     @Override
@@ -48,32 +66,12 @@ public final class UnmodifiableMapImpl<K, V> implements MapService<K, V>, Serial
     }
 
     @Override
-    public V remove(K key) {
+    public V putIfAbsent(K key, V value) {
         throw new UnsupportedOperationException("Unmodifiable");
     }
 
     @Override
-    public int size() {
-        return that.size();
-    }
-
-    @Override
-    public CollectionService<Entry<K, V>> entrySet() {
-        return new UnmodifiableCollectionImpl<Entry<K, V>>(that.entrySet());
-    }
-
-    @Override
-    public CollectionService<V> values() {
-        return new UnmodifiableCollectionImpl<V>(that.values());
-    }
-
-    @Override
-    public CollectionService<K> keySet() {
-        return new UnmodifiableCollectionImpl<K>(that.keySet());
-    }
-
-    @Override
-    public V putIfAbsent(K key, V value) {
+    public V remove(K key) {
         throw new UnsupportedOperationException("Unmodifiable");
     }
 
@@ -93,9 +91,12 @@ public final class UnmodifiableMapImpl<K, V> implements MapService<K, V>, Serial
     }
 
     @Override
-    public FullComparator<K> keyComparator() {
-        return that.keyComparator();
+    public int size() {
+        return target.size();
     }
-    
-    private static final long serialVersionUID = -654546354439540409L;
- }
+
+    @Override
+    public CollectionService<V> values() {
+        return new UnmodifiableCollectionImpl<V>(target.values());
+    }
+}

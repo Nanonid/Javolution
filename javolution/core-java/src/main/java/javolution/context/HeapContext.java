@@ -17,14 +17,10 @@ import javolution.util.function.Supplier;
 /**
  * <p> An {@link AllocatorContext} always allocating from the heap (default).</p>
  * 
- * <p> This context is typically used when updating the static fields of 
- *     {@link javolution.annotation.StackSafe} classes.</p>
- *
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
- * @see javolution.annotation.StackSafe
+ * @version 6.0, July 21, 2013
  */
-public abstract class HeapContext extends AllocatorContext<HeapContext> {
+public abstract class HeapContext extends AllocatorContext {
 
     /**
      * Indicates whether or not static methods will block for an OSGi published
@@ -36,19 +32,20 @@ public abstract class HeapContext extends AllocatorContext<HeapContext> {
     /**
      * Default constructor.
      */
-    protected HeapContext() {
-    }
-    
-   /**
-     * Enters a heap context instance (private since heap context
-     * is not configurable).
-     */
+    protected HeapContext() {}
+
+    /**
+      * Enters a heap context instance (private since heap context
+      * is not configurable).
+      */
     private static HeapContext enter() {
         HeapContext ctx = AbstractContext.current(HeapContext.class);
-        if (ctx != null) return ctx.inner().enterScope();
-        return HEAP_CONTEXT_TRACKER.getService(WAIT_FOR_SERVICE.get(), DEFAULT).inner().enterScope();
+        if (ctx == null) { // Root.
+            ctx = HEAP_CONTEXT_TRACKER.getService(WAIT_FOR_SERVICE.get(), DEFAULT);
+        }
+        return (HeapContext) ctx.enterInner();
     }
-    
+
     /**
      * Executes the specified logic allocating objects on the heap.
      */

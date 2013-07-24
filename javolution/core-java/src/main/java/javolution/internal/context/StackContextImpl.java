@@ -16,14 +16,15 @@ import javolution.util.function.Function;
  * Holds the default implementation of StackContext.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public final class StackContextImpl extends StackContext {
 
     // TODO: Use RTSJ Scoped Memory.
-    
+
     @Override
-    protected <P, R extends Copyable<R>> R executeInContext(Function<P, R> function, P parameter) {
+    protected <P, R extends Copyable<R>> R executeInContext(
+            Function<P, R> function, P parameter) {
         return function.apply(parameter);
     }
 
@@ -36,6 +37,5 @@ public final class StackContextImpl extends StackContext {
     protected StackContext inner() {
         return this;
     }
-
 
 }

@@ -9,9 +9,9 @@
 package javolution.internal.text;
 
 import java.io.IOException;
-import javolution.annotation.Format;
 import javolution.text.CharSet;
 import javolution.text.Cursor;
+import javolution.text.DefaultTextFormat;
 import javolution.text.TextContext;
 import javolution.text.TextFormat;
 import javolution.text.TypeFormat;
@@ -21,7 +21,7 @@ import javolution.util.FastMap;
  * Holds the default implementation of TextContext.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public final class TextContextImpl extends TextContext {
 
@@ -40,10 +40,9 @@ public final class TextContextImpl extends TextContext {
         TextFormat<T> tf = (TextFormat<T>) formats.get(type);
         if (tf != null)
             return tf;
-        Format format = type.getAnnotation(Format.class);
-        if ((format != null)
-                && (format.text() != Format.UnsupportedTextFormat.class)) {
-            Class<? extends TextFormat<?>> formatClass = format.text();
+        DefaultTextFormat format = type.getAnnotation(DefaultTextFormat.class);
+        if (format != null) {
+            Class<?> formatClass = format.value();
             try {
                 tf = (TextFormat<T>) formatClass.newInstance();
                 synchronized (formats) { // Required since possible concurrent use 

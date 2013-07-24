@@ -9,59 +9,137 @@
 package javolution.internal.util.set;
 
 import java.io.Serializable;
+import java.util.Iterator;
 
+import javolution.internal.util.ReadWriteLockImpl;
+import javolution.internal.util.SharedIteratorImpl;
 import javolution.internal.util.collection.SharedCollectionImpl;
+import javolution.util.function.Consumer;
+import javolution.util.function.EqualityComparator;
+import javolution.util.function.Predicate;
 import javolution.util.service.SetService;
 
 /**
  * A shared view over a set allowing concurrent access and sequential updates.
  */
-public class SharedSetImpl<E> extends SharedCollectionImpl<E> implements SetService<E>,
-        Serializable {
+public class SharedSetImpl<E> implements SetService<E>, Serializable {
 
-    public SharedSetImpl(SetService<E> that) {
-        super(that);
+    private static final long serialVersionUID = 0x600L; // Version.
+    private final ReadWriteLockImpl rwLock;
+    private final SetService<E> target;
+
+    public SharedSetImpl(SetService<E> target) {
+        this(target,new ReadWriteLockImpl());
     }
-    
+
+    public SharedSetImpl(SetService<E> target, ReadWriteLockImpl rwLock) {
+        this.target = target;
+        this.rwLock = rwLock;
+    }
+
     @Override
-    public int size() {
-        read.lock();
+    public boolean add(E element) {
+        rwLock.writeLock().lock();
         try {
-            return ((SetService<E>) target).size();
+            return target.add(element);
         } finally {
-            read.unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
     @Override
     public void clear() {
-        write.lock();
+        rwLock.writeLock().lock();
         try {
-            ((SetService<E>) target).clear();
+            target.clear();
         } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
         }
+    }
+
+    @Override
+    public EqualityComparator<? super E> comparator() {
+        return target.comparator();
     }
 
     @Override
     public boolean contains(E e) {
-        read.lock();
+        rwLock.readLock().lock();
         try {
-            return ((SetService<E>) target).contains(e);
+            return target.contains(e);
         } finally {
-            read.unlock();
-        }   
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void forEach(
+            Consumer<? super E> consumer, IterationController controller) {
+        rwLock.readLock().lock();
+        try {
+            target.forEach(consumer, controller);
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Deprecated
+    @Override
+    public Iterator<E> iterator() {
+        return new SharedIteratorImpl<E>(target.iterator(), rwLock);
     }
 
     @Override
     public boolean remove(E e) {
-        write.lock();
+        rwLock.writeLock().lock();
         try {
-            return ((SetService<E>) target).remove(e);
+            return target.remove(e);
         } finally {
-            write.unlock();
+            rwLock.writeLock().unlock();
         }
     }
+
+    @Override
+    public boolean removeIf(
+            Predicate<? super E> filter, IterationController controller) {
+        rwLock.writeLock().lock();
+        try {
+            return target.removeIf(filter, controller);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public int size() {
+        rwLock.readLock().lock();
+        try {
+            return target.size();
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public SharedCollectionImpl<E>[] trySplit(int n) {
+        return SharedCollectionImpl.splitOf(target, n, rwLock);
+    }
+
+    @Override
+    public void atomic(Runnable update) {
+        rwLock.writeLock().lock();
+        try {
+            target.atomic(update);
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+        
+    protected SetService<E> target() {
+        return target;
+    }
     
-    private static final long serialVersionUID = 8668632118009609808L;
+    protected ReadWriteLockImpl rwLock() {
+        return rwLock;
+    }
 }

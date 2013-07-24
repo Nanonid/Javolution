@@ -14,12 +14,12 @@ import javolution.context.HeapContext;
  * Holds the default implementation of HeapContext.
  * 
  * @author  <a href="mailto:jean-marie@dautelle.com">Jean-Marie Dautelle</a>
- * @version 6.0, December 12, 2012
+ * @version 6.0, July 21, 2013
  */
 public final class HeapContextImpl extends HeapContext {
 
     // TODO: Use RTSJ Heap Memory.
-    
+
     @Override
     protected void executeInContext(Runnable logic) {
         logic.run();
